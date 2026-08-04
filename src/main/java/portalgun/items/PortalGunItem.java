@@ -21,6 +21,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -44,13 +45,14 @@ import qouteall.q_misc_util.my_util.IntBox;
 import qouteall.q_misc_util.my_util.LimitedLogger;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
-import software.bernie.geckolib.animatable.client.RenderProvider;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.AnimationController;
-import software.bernie.geckolib.core.animation.RawAnimation;
-import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.animatable.client.GeoRenderProvider;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.RawAnimation;
+import portalgun.PortalGunDataComponents;
 import portalgun.PortalGunMod;
 import portalgun.PortalGunRecord;
 import portalgun.client.renderer.PortalGunItemRenderer;
@@ -64,7 +66,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class PortalGunItem extends Item implements GeoItem {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -75,19 +76,17 @@ public class PortalGunItem extends Item implements GeoItem {
     public final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     
     private static final RawAnimation SHOOT_ANIM = RawAnimation.begin().thenPlay("portal_shoot");
-    
-    private final Supplier<Object> renderProvider = GeoItem.makeRenderer(this);
-    
+
     public PortalGunItem(Properties settings) {
         super(settings);
-        
+
         SingletonGeoAnimatable.registerSyncedAnimatable(this);
     }
     
-    // example command:
-    // /give @p portalgun:portal_gun{allowedBlocks:["#minecraft:ice","minecraft:stone"]}
-    // /give @p portalgun:portal_gun{side1Color:"#32a852",side2Color:"purple"}
-    // /give @p portalgun:portal_gun{maxEnergy:0}
+    // example commands (1.21 data component):
+    // /give @p portalgun:portal_gun[portalgun:portal_gun_data={allowedBlocks:["#minecraft:ice","minecraft:stone"]}]
+    // /give @p portalgun:portal_gun[portalgun:portal_gun_data={side1Color:"#32a852",side2Color:"purple"}]
+    // /give @p portalgun:portal_gun[portalgun:portal_gun_data={maxEnergy:0}]
     public static final class ItemInfo {
         public @NotNull BlockList allowedBlocks;
         
@@ -163,7 +162,7 @@ public class PortalGunItem extends Item implements GeoItem {
         
         public ItemStack toStack() {
             ItemStack stack = new ItemStack(PortalGunMod.PORTAL_GUN);
-            stack.setTag(toTag());
+            writeInfo(stack, this);
             return stack;
         }
         
@@ -199,24 +198,42 @@ public class PortalGunItem extends Item implements GeoItem {
         }
     }
     
+    /**
+     * Read portal gun state from the custom data component.
+     * Falls back to config defaults when the component is missing.
+     */
+    public static ItemInfo readInfo(ItemStack stack) {
+        CustomData customData = stack.get(PortalGunDataComponents.PORTAL_GUN_DATA);
+        if (customData == null || customData.isEmpty()) {
+            int maxEnergy = PortalGunConfig.get().maxEnergy;
+            return new ItemInfo(BlockList.createDefault(), maxEnergy, maxEnergy);
+        }
+        return ItemInfo.fromTag(customData.copyTag());
+    }
+
+    /**
+     * Write portal gun state into the custom data component.
+     */
+    public static void writeInfo(ItemStack stack, ItemInfo itemInfo) {
+        stack.set(PortalGunDataComponents.PORTAL_GUN_DATA, CustomData.of(itemInfo.toTag()));
+    }
+
     // Utilise our own render hook to define our custom renderer
     @Override
-    public void createRenderer(Consumer<Object> consumer) {
-        consumer.accept(new RenderProvider() {
-            private final PortalGunItemRenderer renderer = new PortalGunItemRenderer();
-            
+    public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
+        consumer.accept(new GeoRenderProvider() {
+            private PortalGunItemRenderer renderer;
+
             @Override
-            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+            public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
+                if (this.renderer == null) {
+                    this.renderer = new PortalGunItemRenderer();
+                }
                 return this.renderer;
             }
         });
     }
-    
-    @Override
-    public Supplier<Object> getRenderProvider() {
-        return this.renderProvider;
-    }
-    
+
     // Register our animation controllers
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
@@ -225,7 +242,7 @@ public class PortalGunItem extends Item implements GeoItem {
                 .triggerableAnim("shoot_anim", SHOOT_ANIM)
         );
     }
-    
+
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return this.cache;
@@ -261,15 +278,14 @@ public class PortalGunItem extends Item implements GeoItem {
     
     @Override
     public void appendHoverText(
-        @NotNull ItemStack stack, @Nullable Level world,
-        @NotNull List<Component> tooltip, @NotNull TooltipFlag context
+        @NotNull ItemStack stack, @NotNull Item.TooltipContext context,
+        @NotNull List<Component> tooltip, @NotNull TooltipFlag flag
     ) {
-        super.appendHoverText(stack, world, tooltip, context);
-        
+        super.appendHoverText(stack, context, tooltip, flag);
+
         tooltip.add(Component.translatable("item.portalgun.portal_gun_desc").withStyle(ChatFormatting.GOLD));
-        
-        CompoundTag tag = stack.getOrCreateTag();
-        ItemInfo itemInfo = ItemInfo.fromTag(tag);
+
+        ItemInfo itemInfo = readInfo(stack);
         
         if (!itemInfo.allowedBlocks.list().isEmpty()) {
             tooltip.add(Component.translatable("portal_gun.limit_allowed_blocks"));
@@ -375,8 +391,8 @@ public class PortalGunItem extends Item implements GeoItem {
         PortalGunRecord.PortalDescriptor descriptor =
             new PortalGunRecord.PortalDescriptor(player.getUUID(), kind, side);
         
-        ItemInfo itemInfo = ItemInfo.fromTag(itemStack.getOrCreateTag());
-        
+        ItemInfo itemInfo = readInfo(itemStack);
+
         if (itemInfo.limitsEnergy()) {
             if (itemInfo.remainingEnergy <= 0) {
                 player.displayClientMessage(
@@ -399,7 +415,7 @@ public class PortalGunItem extends Item implements GeoItem {
         
         if (itemInfo.limitsEnergy()) {
             itemInfo.remainingEnergy--;
-            itemStack.setTag(itemInfo.toTag());
+            writeInfo(itemStack, itemInfo);
         }
         
         Direction rightDir = placement.rotation.transformedX;
@@ -612,22 +628,18 @@ public class PortalGunItem extends Item implements GeoItem {
     // because vanilla max damage is unchangeable
     @Override
     public boolean isBarVisible(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
-        int maxEnergy = tag.getInt("maxEnergy");
-        return maxEnergy != 0;
+        return readInfo(stack).limitsEnergy();
     }
-    
+
     @Override
     public int getBarWidth(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
-        int maxEnergy = tag.getInt("maxEnergy");
-        int remainingEnergy = tag.getInt("remainingEnergy");
-        
-        if (maxEnergy == 0) {
+        ItemInfo itemInfo = readInfo(stack);
+
+        if (!itemInfo.limitsEnergy()) {
             return 0;
         }
-        
-        return Math.round((float) remainingEnergy * 13.0F / (float) maxEnergy);
+
+        return Math.round((float) itemInfo.remainingEnergy * 13.0F / (float) itemInfo.maxEnergy);
     }
     
     @Override

@@ -10,6 +10,8 @@
   "category.portalgun": "传送枪",
   "item.portalgun.portal_gun": "传送枪",
   "text.autoconfig.portalgun.title": "传送枪模组设置",
+  "text.autoconfig.portalgun.option.maxEnergy": "最大能量",
+  "text.autoconfig.portalgun.option.maxEnergy.@Tooltip": "新传送枪的默认能量。0 = 无限能量。",
   "portal_gun.limit_allowed_blocks": "仅在这些方块上起效:",
   "portal_gun.out_of_energy": "能量不足。需要使用下界之星通过合成充能。",
   "portal_gun.remaining_energy": "能量: %s / %s",

@@ -1,5 +1,6 @@
 package portalgun;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -123,7 +124,7 @@ public class PortalGunRecord extends SavedData {
                 tag.getUUID("portalId"),
                 ResourceKey.create(
                     Registries.DIMENSION,
-                    new ResourceLocation(tag.getString("portalDim"))
+                    ResourceLocation.parse(tag.getString("portalDim"))
                 ),
                 new Vec3(
                     tag.getDouble("portalPosX"),
@@ -144,9 +145,10 @@ public class PortalGunRecord extends SavedData {
     
     public static PortalGunRecord get() {
         ServerLevel overworld = MiscHelper.getServer().overworld();
-        
+
+        // DataFixTypes null: custom saved data, no vanilla datafixer schema
         return overworld.getDataStorage().computeIfAbsent(
-            new SavedData.Factory<>(
+            new SavedData.Factory<PortalGunRecord>(
                 () -> {
                     LOGGER.info("Portal gun record initialized ");
                     return new PortalGunRecord(new HashMap<>());
@@ -157,26 +159,26 @@ public class PortalGunRecord extends SavedData {
             "portal_gun_record"
         );
     }
-    
+
     @Override
-    public CompoundTag save(CompoundTag compoundTag) {
+    public CompoundTag save(CompoundTag compoundTag, HolderLookup.Provider provider) {
         ListTag dataTag = new ListTag();
-        
+
         data.forEach((key, value) -> {
             CompoundTag entryTag = new CompoundTag();
             entryTag.put("key", key.toTag());
             entryTag.put("value", value.toTag());
             dataTag.add(entryTag);
         });
-        
+
         compoundTag.put("data", dataTag);
-        
+
         return compoundTag;
     }
-    
-    public static PortalGunRecord load(CompoundTag compoundTag) {
+
+    public static PortalGunRecord load(CompoundTag compoundTag, HolderLookup.Provider provider) {
         ListTag dataTag = compoundTag.getList("data", 10);
-        
+
         try {
             Map<PortalDescriptor, PortalInfo> data = dataTag.stream()
                 .map(CompoundTag.class::cast)
@@ -184,7 +186,7 @@ public class PortalGunRecord extends SavedData {
                     entryTag -> PortalDescriptor.fromTag(entryTag.getCompound("key")),
                     entryTag -> PortalInfo.fromTag(entryTag.getCompound("value"))
                 ));
-            
+
             return new PortalGunRecord(data);
         }
         catch (Exception e) {

@@ -1,0 +1,20 @@
+{
+  "item.portalgun.portal_gun": "Portal Gun",
+  "item.portalgun.portal_gun_desc": "Dispositivo portatile a doppio portale Aperture Science",
+  "item.portalgun.portalgun_body": "Corpo del dispositivo portale",
+  "item.portalgun.portalgun_claw": "Artiglio del dispositivo portale",
+  "subtitles.portalgun.portal1_shoot": "Portale primario sparato",
+  "subtitles.portalgun.portal2_shoot": "Portale secondario sparato",
+  "subtitles.portalgun.portal_open": "Portale aperto",
+  "subtitles.portalgun.portal_close": "Portale chiuso",
+  "key.portalgun.clearportals": "Cancella portali",
+  "category.portalgun": "Portal Gun",
+  "text.autoconfig.portalgun.title": "Opzioni Portal Gun",
+  "text.autoconfig.portalgun.option.maxEnergy": "Energia massima",
+  "text.autoconfig.portalgun.option.maxEnergy.@Tooltip": "Energia predefinita per le nuove portal gun. 0 = energia infinita.",
+  "portal_gun.limit_allowed_blocks": "Funziona solo su questi blocchi:",
+  "portal_gun.out_of_energy": "Energia esaurita. Ricaricala craftando con una stella del Nether.",
+  "portal_gun.remaining_energy": "Energia: %s / %s",
+  "portalgun.item_group": "Portal Gun",
+  "portal_gun.transform_gravity": "Trasformazione gravità attiva"
+}

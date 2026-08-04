@@ -43,7 +43,8 @@ public record BlockList(
     public BiPredicate<Level, BlockPos> getWallPredicate() {
         if (list().isEmpty()) {
             // default predicate: only solid blocks
-            return (w, p) -> w.getBlockState(p).isSolidRender(w, p);
+            // default predicate: any block with collision (solid enough to hold a portal)
+            return (w, p) -> !w.getBlockState(p).getCollisionShape(w, p).isEmpty();
         }
         
         Set<Block> allowedBlocks = asStream().collect(Collectors.toSet());
@@ -63,7 +64,7 @@ public record BlockList(
         if (str.startsWith("#")) {
             TagKey<Block> tagKey = TagKey.create(
                 Registries.BLOCK,
-                new ResourceLocation(str.substring(1))
+                ResourceLocation.parse(str.substring(1))
             );
             Optional<HolderSet.Named<Block>> named = BuiltInRegistries.BLOCK.getTag(tagKey);
             if (named.isEmpty()) {
@@ -78,7 +79,7 @@ public record BlockList(
             }
         }
         else {
-            Optional<Block> optional = BuiltInRegistries.BLOCK.getOptional(new ResourceLocation(str));
+            Optional<Block> optional = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.parse(str));
             if (optional.isPresent()) {
                 return Collections.singletonList(optional.get());
             }

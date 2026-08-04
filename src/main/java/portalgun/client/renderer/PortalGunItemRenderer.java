@@ -7,6 +7,8 @@ import portalgun.items.PortalGunItem;
 
 public class PortalGunItemRenderer extends GeoItemRenderer<PortalGunItem> {
     public PortalGunItemRenderer() {
-        super(new DefaultedItemGeoModel<>(new ResourceLocation("portalgun", "portalgun")));
+        super(new DefaultedItemGeoModel<>(
+            ResourceLocation.fromNamespaceAndPath("portalgun", "portalgun")
+        ));
     }
 }

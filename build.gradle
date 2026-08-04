@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.4-SNAPSHOT'
+    id 'fabric-loom' version '1.9-SNAPSHOT'
     id 'maven-publish'
 
     id "me.modmuss50.mod-publish-plugin" version "0.4.5"
@@ -42,14 +42,18 @@ repositories {
         url = 'https://maven.ladysnake.org/releases'
     }
 
-    jcenter()
 }
 
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+}
 
-archivesBaseName = project.archives_base_name
+base {
+    archivesName = project.archives_base_name
+}
 version = project.mod_version
 group = project.maven_group
 
@@ -66,7 +70,7 @@ dependencies {
         officialMojangMappings() {
             setNameSyntheticMembers(false)
         }
-        parchment("org.parchmentmc.data:parchment-1.19.3:2022.12.18")
+        parchment("org.parchmentmc.data:parchment-1.21:2024.07.28")
     }
 
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -74,7 +78,10 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    modImplementation ("com.github.iPortalTeam:ImmersivePortalsMod:${immptl_version}")
+    modImplementation "maven.modrinth:immersiveportals:${immptl_version}"
+    modImplementation("com.github.iPortalTeam:DimLib:${dimlib_version}") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
 
     // maven local
 //    modImplementation "qouteall:imm_ptl_20:3.1.2.1"
@@ -116,26 +123,18 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    // Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
-    it.options.release = 17
-}
-
-java {
-    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-    // if it is present.
-    // If you remove this line, sources will not be generated.
-    withSourcesJar()
+    it.options.release = 21
 }
 
 jar {
     from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}"}
+        rename { "${it}_${project.archives_base_name}"}
     }
 }
 
 afterEvaluate {
     remapJar {
-        archiveFileName = "${archivesBaseName}-${project.mod_version}-mc${project.minecraft_version}-fabric.jar"
+        archiveFileName = "${project.archives_base_name}-${project.mod_version}-mc${project.minecraft_version}-fabric.jar"
     }
 }
 

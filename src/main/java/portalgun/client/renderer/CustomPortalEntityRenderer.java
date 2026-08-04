@@ -50,16 +50,19 @@ public class CustomPortalEntityRenderer extends EntityRenderer<CustomPortal> {
         matrices.translate(0, 0, PortalGunMod.portalOverlayOffset);
         
         int color = entity.getColor();
-        
+
         int r = (color & 0xFF0000) >> 16;
         int g = (color & 0xFF00) >> 8;
         int b = color & 0xFF;
-        
+        int packedColor = (0xFF << 24) | (r << 16) | (g << 8) | b;
+
+        // 1.21 Model#renderToBuffer takes a packed ARGB int instead of float channels
         this.model.renderToBuffer(
             matrices,
             vertexConsumers.getBuffer(RenderType.entityTranslucent(this.getTextureLocation(entity))),
             LightTexture.pack(15, 15),
-            NO_OVERLAY, r / 255.0f, g / 255.0f, b / 255.0f, 1.0f
+            NO_OVERLAY,
+            packedColor
         );
         matrices.popPose();
     }
