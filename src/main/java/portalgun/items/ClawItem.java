@@ -1,15 +1,14 @@
 package portalgun.items;
 
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.world.item.Item;
-import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
+import com.geckolib.animatable.GeoItem;
+import com.geckolib.animatable.SingletonGeoAnimatable;
+import com.geckolib.animatable.client.GeoRenderProvider;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.object.PlayState;
 import portalgun.client.renderer.ClawItemRenderer;
 
 import java.util.function.Consumer;
@@ -31,7 +30,7 @@ public class ClawItem extends Item implements GeoItem {
             private ClawItemRenderer renderer;
 
             @Override
-            public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
+            public ClawItemRenderer getGeoItemRenderer() {
                 if (this.renderer == null) {
                     this.renderer = new ClawItemRenderer();
                 }
@@ -43,8 +42,8 @@ public class ClawItem extends Item implements GeoItem {
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(
-            new AnimationController<>(
-                this, "clawController", 1, state -> PlayState.CONTINUE
+            new AnimationController<ClawItem>(
+                "clawController", 1, state -> PlayState.CONTINUE
             )
         );
     }

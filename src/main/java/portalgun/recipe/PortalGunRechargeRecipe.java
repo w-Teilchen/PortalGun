@@ -1,33 +1,35 @@
 package portalgun.recipe;
 
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CustomRecipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraft.world.level.Level;
 import portalgun.PortalGunMod;
 import portalgun.items.PortalGunItem;
 
 public class PortalGunRechargeRecipe extends CustomRecipe {
+    // stateless special recipe, like vanilla's RepairItemRecipe since 26.x
+    public static final PortalGunRechargeRecipe INSTANCE = new PortalGunRechargeRecipe();
+    public static final MapCodec<PortalGunRechargeRecipe> MAP_CODEC = MapCodec.unit(INSTANCE);
+    public static final StreamCodec<RegistryFriendlyByteBuf, PortalGunRechargeRecipe> STREAM_CODEC =
+        StreamCodec.unit(INSTANCE);
     public static final RecipeSerializer<PortalGunRechargeRecipe> SERIALIZER =
-        new SimpleCraftingRecipeSerializer<>(PortalGunRechargeRecipe::new);
+        new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
 
     public static void init() {
         Registry.register(
             BuiltInRegistries.RECIPE_SERIALIZER,
-            ResourceLocation.parse("portalgun:portal_gun_recharge"),
+            Identifier.parse("portalgun:portal_gun_recharge"),
             SERIALIZER
         );
-    }
-
-    public PortalGunRechargeRecipe(CraftingBookCategory category) {
-        super(category);
     }
 
     /**
@@ -53,7 +55,7 @@ public class PortalGunRechargeRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingInput input, net.minecraft.core.HolderLookup.Provider registryAccess) {
+    public ItemStack assemble(CraftingInput input) {
         ItemStack portalGun = ItemStack.EMPTY;
 
         for (int i = 0; i < input.size(); i++) {
@@ -74,12 +76,7 @@ public class PortalGunRechargeRecipe extends CustomRecipe {
     }
 
     @Override
-    public boolean canCraftInDimensions(int width, int height) {
-        return true;
-    }
-
-    @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<PortalGunRechargeRecipe> getSerializer() {
         return SERIALIZER;
     }
 }

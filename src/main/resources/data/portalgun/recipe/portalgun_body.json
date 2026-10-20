@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GQQ",
+    "NRQ",
+    "SSS"
+  ],
+  "key": {
+    "Q": "minecraft:quartz_block",
+    "R": "minecraft:redstone",
+    "G": "minecraft:glass",
+    "S": "minecraft:stone",
+    "N": "minecraft:nether_star"
+  },
+  "result": {
+    "id": "portalgun:portalgun_body"
+  },
+  "category": "equipment"
+}

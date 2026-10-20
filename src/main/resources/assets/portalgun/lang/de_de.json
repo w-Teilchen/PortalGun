@@ -11,5 +11,6 @@
   "text.autoconfig.portalgun.option.enabled.portalFunneling": "Portal Schleusen",
   "text.autoconfig.portalgun.title": "Portal Gun Fabric Optionen",
   "text.autoconfig.portalgun.option.maxEnergy": "Maximale Energie",
-  "text.autoconfig.portalgun.option.maxEnergy.@Tooltip": "Standardenergie für neue Portal Guns. 0 = unendliche Energie."
+  "text.autoconfig.portalgun.option.maxEnergy.@Tooltip": "Standardenergie für neue Portal Guns. 0 = unendliche Energie.",
+  "key.category.portalgun.portalgun": "Portal Gun"
 }

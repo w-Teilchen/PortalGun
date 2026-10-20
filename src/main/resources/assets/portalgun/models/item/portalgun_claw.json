@@ -1,5 +1,4 @@
 {
-  "parent": "builtin/entity",
   "texture_size": [
     32,
     32
@@ -136,5 +135,8 @@
         1.25
       ]
     }
+  },
+  "textures": {
+    "particle": "portalgun:item/portalgun"
   }
 }

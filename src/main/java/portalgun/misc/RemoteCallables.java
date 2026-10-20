@@ -14,7 +14,7 @@ public class RemoteCallables {
         ItemStack itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (itemInHand.getItem() == PortalGunMod.PORTAL_GUN) {
             ItemCooldowns cooldowns = player.getCooldowns();
-            float cooldownPercent = cooldowns.getCooldownPercent(PortalGunMod.PORTAL_GUN, 0);
+            float cooldownPercent = cooldowns.getCooldownPercent(itemInHand, 0);
             
             if (cooldownPercent < 0.001) {
                 PortalGunMod.PORTAL_GUN.onAttack(player, player.level(), InteractionHand.MAIN_HAND);

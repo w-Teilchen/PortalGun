@@ -16,5 +16,6 @@
   "portal_gun.out_of_energy": "能量不足。需要使用下界之星通过合成充能。",
   "portal_gun.remaining_energy": "能量: %s / %s",
   "portalgun.item_group": "传送枪",
-  "portal_gun.transform_gravity": "引力变换已开启"
+  "portal_gun.transform_gravity": "引力变换已开启",
+  "key.category.portalgun.portalgun": "传送枪"
 }

@@ -120,3 +120,6 @@ run/
 remappedSrc/
 
 compiler_output/
+
+# local mod jars for runClientGameTest -PwithPackMods
+packmods/

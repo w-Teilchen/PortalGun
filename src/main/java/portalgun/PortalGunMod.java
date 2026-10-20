@@ -1,14 +1,16 @@
 package portalgun;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeColor;
@@ -39,23 +41,23 @@ public class PortalGunMod implements ModInitializer {
     public static final double portalOverlayOffset = 0.001;
 
     public static final PortalGunItem PORTAL_GUN = new PortalGunItem(
-        new Item.Properties().fireResistant().stacksTo(1).rarity(Rarity.EPIC)
+        new Item.Properties().setId(itemKey("portal_gun")).fireResistant().stacksTo(1).rarity(Rarity.EPIC)
     );
     public static final Item PORTAL_GUN_BODY = new Item(
-        new Item.Properties().fireResistant().stacksTo(1).rarity(Rarity.RARE)
+        new Item.Properties().setId(itemKey("portalgun_body")).fireResistant().stacksTo(1).rarity(Rarity.RARE)
     );
     public static final ClawItem PORTAL_GUN_CLAW = new ClawItem(
-        new Item.Properties().fireResistant().stacksTo(1).rarity(Rarity.RARE)
+        new Item.Properties().setId(itemKey("portalgun_claw")).fireResistant().stacksTo(1).rarity(Rarity.RARE)
     );
 
-    public static final ResourceLocation PORTAL1_SHOOT =
-        ResourceLocation.fromNamespaceAndPath(MODID, "portal1_shoot");
-    public static final ResourceLocation PORTAL2_SHOOT =
-        ResourceLocation.fromNamespaceAndPath(MODID, "portal2_shoot");
-    public static final ResourceLocation PORTAL_OPEN =
-        ResourceLocation.fromNamespaceAndPath(MODID, "portal_open");
-    public static final ResourceLocation PORTAL_CLOSE =
-        ResourceLocation.fromNamespaceAndPath(MODID, "portal_close");
+    public static final Identifier PORTAL1_SHOOT =
+        Identifier.fromNamespaceAndPath(MODID, "portal1_shoot");
+    public static final Identifier PORTAL2_SHOOT =
+        Identifier.fromNamespaceAndPath(MODID, "portal2_shoot");
+    public static final Identifier PORTAL_OPEN =
+        Identifier.fromNamespaceAndPath(MODID, "portal_open");
+    public static final Identifier PORTAL_CLOSE =
+        Identifier.fromNamespaceAndPath(MODID, "portal_close");
 
     public static final SoundEvent PORTAL1_SHOOT_EVENT =
         SoundEvent.createVariableRangeEvent(PORTAL1_SHOOT);
@@ -67,7 +69,7 @@ public class PortalGunMod implements ModInitializer {
         SoundEvent.createVariableRangeEvent(PORTAL_CLOSE);
 
     public static final CreativeModeTab TAB =
-        FabricItemGroup.builder()
+        FabricCreativeModeTab.builder()
             .icon(() -> new ItemStack(PortalGunMod.PORTAL_GUN))
             .title(Component.translatable("portalgun.item_group"))
             .displayItems((enabledFeatures, entries) -> {
@@ -104,8 +106,13 @@ public class PortalGunMod implements ModInitializer {
             })
             .build();
 
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MODID, path);
+    }
+
+    // since 1.21.2 an item's registry key must be known when its Properties are built
+    private static ResourceKey<Item> itemKey(String path) {
+        return ResourceKey.create(Registries.ITEM, id(path));
     }
 
     public static boolean isAreaClear(Level world, IntBox airBox1) {
@@ -149,7 +156,7 @@ public class PortalGunMod implements ModInitializer {
         }
 
         if (tag instanceof StringTag stringTag) {
-            String value = stringTag.getAsString();
+            String value = stringTag.value();
 
             if (value.startsWith("#")) {
                 String hex = value.substring(1);
@@ -170,7 +177,7 @@ public class PortalGunMod implements ModInitializer {
         }
 
         if (tag instanceof NumericTag numericTag) {
-            return numericTag.getAsInt();
+            return numericTag.intValue();
         }
 
         return null;

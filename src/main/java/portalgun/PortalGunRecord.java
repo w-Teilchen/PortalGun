@@ -1,14 +1,15 @@
 package portalgun;
 
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -81,7 +82,7 @@ public class PortalGunRecord extends SavedData {
     ) {
         public CompoundTag toTag() {
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("playerId", playerId);
+            tag.store("playerId", UUIDUtil.CODEC, playerId);
             tag.putString("kind", kind.name());
             tag.putString("side", side.name());
             return tag;
@@ -89,9 +90,9 @@ public class PortalGunRecord extends SavedData {
         
         public static PortalDescriptor fromTag(CompoundTag tag) {
             return new PortalDescriptor(
-                tag.getUUID("playerId"),
-                PortalGunKind.fromString(tag.getString("kind")),
-                PortalGunSide.fromString(tag.getString("side"))
+                tag.read("playerId", UUIDUtil.CODEC).orElseThrow(),
+                PortalGunKind.fromString(tag.getStringOr("kind", "")),
+                PortalGunSide.fromString(tag.getStringOr("side", ""))
             );
         }
         
@@ -109,8 +110,8 @@ public class PortalGunRecord extends SavedData {
     ) {
         CompoundTag toTag() {
             CompoundTag tag = new CompoundTag();
-            tag.putUUID("portalId", portalId);
-            tag.putString("portalDim", portalDim.location().toString());
+            tag.store("portalId", UUIDUtil.CODEC, portalId);
+            tag.putString("portalDim", portalDim.identifier().toString());
             tag.putDouble("portalPosX", portalPos.x);
             tag.putDouble("portalPosY", portalPos.y);
             tag.putDouble("portalPosZ", portalPos.z);
@@ -121,18 +122,18 @@ public class PortalGunRecord extends SavedData {
         
         static PortalInfo fromTag(CompoundTag tag) {
             return new PortalInfo(
-                tag.getUUID("portalId"),
+                tag.read("portalId", UUIDUtil.CODEC).orElseThrow(),
                 ResourceKey.create(
                     Registries.DIMENSION,
-                    ResourceLocation.parse(tag.getString("portalDim"))
+                    Identifier.parse(tag.getStringOr("portalDim", "minecraft:overworld"))
                 ),
                 new Vec3(
-                    tag.getDouble("portalPosX"),
-                    tag.getDouble("portalPosY"),
-                    tag.getDouble("portalPosZ")
+                    tag.getDoubleOr("portalPosX", 0),
+                    tag.getDoubleOr("portalPosY", 0),
+                    tag.getDoubleOr("portalPosZ", 0)
                 ),
-                DQuaternion.fromTag(tag.getCompound("portalOrientation")),
-                tag.getInt("updateCounter")
+                DQuaternion.fromTag(tag.getCompoundOrEmpty("portalOrientation")),
+                tag.getIntOr("updateCounter", 0)
             );
         }
     }
@@ -146,22 +147,22 @@ public class PortalGunRecord extends SavedData {
     public static PortalGunRecord get() {
         ServerLevel overworld = MiscHelper.getServer().overworld();
 
-        // DataFixTypes null: custom saved data, no vanilla datafixer schema
-        return overworld.getDataStorage().computeIfAbsent(
-            new SavedData.Factory<PortalGunRecord>(
-                () -> {
-                    LOGGER.info("Portal gun record initialized ");
-                    return new PortalGunRecord(new HashMap<>());
-                },
-                PortalGunRecord::load,
-                null
-            ),
-            "portal_gun_record"
-        );
+        return overworld.getDataStorage().computeIfAbsent(TYPE);
     }
 
-    @Override
-    public CompoundTag save(CompoundTag compoundTag, HolderLookup.Provider provider) {
+    // stored at data/portalgun/portal_gun_record.dat;
+    // DataFixTypes null: custom saved data, no vanilla datafixer schema (Fabric API allows null)
+    private static final SavedDataType<PortalGunRecord> TYPE = new SavedDataType<>(
+        PortalGunMod.id("portal_gun_record"),
+        () -> {
+            LOGGER.info("Portal gun record initialized ");
+            return new PortalGunRecord(new HashMap<>());
+        },
+        CompoundTag.CODEC.xmap(PortalGunRecord::load, record -> record.save(new CompoundTag())),
+        null
+    );
+
+    public CompoundTag save(CompoundTag compoundTag) {
         ListTag dataTag = new ListTag();
 
         data.forEach((key, value) -> {
@@ -176,15 +177,15 @@ public class PortalGunRecord extends SavedData {
         return compoundTag;
     }
 
-    public static PortalGunRecord load(CompoundTag compoundTag, HolderLookup.Provider provider) {
-        ListTag dataTag = compoundTag.getList("data", 10);
+    public static PortalGunRecord load(CompoundTag compoundTag) {
+        ListTag dataTag = compoundTag.getListOrEmpty("data");
 
         try {
             Map<PortalDescriptor, PortalInfo> data = dataTag.stream()
                 .map(CompoundTag.class::cast)
                 .collect(Collectors.toMap(
-                    entryTag -> PortalDescriptor.fromTag(entryTag.getCompound("key")),
-                    entryTag -> PortalInfo.fromTag(entryTag.getCompound("value"))
+                    entryTag -> PortalDescriptor.fromTag(entryTag.getCompoundOrEmpty("key")),
+                    entryTag -> PortalInfo.fromTag(entryTag.getCompoundOrEmpty("value"))
                 ));
 
             return new PortalGunRecord(data);

@@ -1,38 +1,46 @@
 package portalgun.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.NotNull;
 import qouteall.imm_ptl.core.CHelper;
+import qouteall.imm_ptl.core.render.PortalEntityRenderer;
 import qouteall.q_misc_util.my_util.DQuaternion;
 import portalgun.PortalGunMod;
 import portalgun.client.PortalgunClient;
-import portalgun.client.renderer.models.PortalOverlayModel;
 import portalgun.entities.CustomPortal;
 
 import static net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
 import static portalgun.PortalGunMod.id;
 
-public class CustomPortalEntityRenderer extends EntityRenderer<CustomPortal> {
-    private final PortalOverlayModel model;
+/**
+ * Extends Immersive Portals' renderer: on 26.3 the portal surface (the view through the portal)
+ * is submitted by the portal's entity renderer, so it must still run before the overlay is drawn.
+ */
+public class CustomPortalEntityRenderer extends PortalEntityRenderer {
+    private final ModelPart overlayBase;
     
     public CustomPortalEntityRenderer(EntityRendererProvider.Context context) {
         super(context);
-        model = new PortalOverlayModel(context.bakeLayer(PortalgunClient.OVERLAY_MODEL_LAYER));
+        overlayBase = context.bakeLayer(PortalgunClient.OVERLAY_MODEL_LAYER).getChild("base");
     }
     
     @Override
-    public void render(
-        @NotNull CustomPortal entity, float yaw, float tickDelta,
-        @NotNull PoseStack matrices, @NotNull MultiBufferSource vertexConsumers, int light
+    public void submit(
+        PortalRenderState state, PoseStack matrices,
+        SubmitNodeCollector submitNodeCollector, CameraRenderState camera
     ) {
-        super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);
+        super.submit(state, matrices, submitNodeCollector, camera);
+        
+        if (!(state.portal instanceof CustomPortal entity)) {
+            return;
+        }
         
         // don't render overlay from back side
         if (!entity.isInFrontOfPortal(CHelper.getCurrentCameraPos())) {
@@ -50,31 +58,27 @@ public class CustomPortalEntityRenderer extends EntityRenderer<CustomPortal> {
         matrices.translate(0, 0, PortalGunMod.portalOverlayOffset);
         
         int color = entity.getColor();
-
-        int r = (color & 0xFF0000) >> 16;
-        int g = (color & 0xFF00) >> 8;
-        int b = color & 0xFF;
-        int packedColor = (0xFF << 24) | (r << 16) | (g << 8) | b;
-
-        // 1.21 Model#renderToBuffer takes a packed ARGB int instead of float channels
-        this.model.renderToBuffer(
+        int packedColor = 0xFF000000 | (color & 0xFFFFFF);
+        
+        submitNodeCollector.submitModelPart(
+            overlayBase,
             matrices,
-            vertexConsumers.getBuffer(RenderType.entityTranslucent(this.getTextureLocation(entity))),
-            LightTexture.pack(15, 15),
+            RenderTypes.entityTranslucent(getTextureLocation(entity)),
+            LightCoordsUtil.FULL_BRIGHT,
             NO_OVERLAY,
+            null,
             packedColor
         );
         matrices.popPose();
     }
     
-    @Override
-    public @NotNull ResourceLocation getTextureLocation(CustomPortal entity) {
+    private static Identifier getTextureLocation(CustomPortal entity) {
         return entity.isVisible() ? OVERLAY_FRAME : OVERLAY_FILLED;
     }
     
-    private static final ResourceLocation OVERLAY_FRAME =
+    private static final Identifier OVERLAY_FRAME =
         id("textures/entity/overlay_frame.png");
-    private static final ResourceLocation OVERLAY_FILLED =
+    private static final Identifier OVERLAY_FILLED =
         id("textures/entity/overlay_filled.png");
     
 }

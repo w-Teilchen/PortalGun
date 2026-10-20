@@ -1,7 +1,6 @@
 package portalgun.items;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -15,17 +14,19 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.dimension.end.EndDragonFight;
+import net.minecraft.world.level.dimension.end.EnderDragonFight;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -43,15 +44,15 @@ import qouteall.q_misc_util.Helper;
 import qouteall.q_misc_util.my_util.AARotation;
 import qouteall.q_misc_util.my_util.IntBox;
 import qouteall.q_misc_util.my_util.LimitedLogger;
-import software.bernie.geckolib.animatable.GeoItem;
-import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
-import software.bernie.geckolib.animatable.client.GeoRenderProvider;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
+import com.geckolib.animatable.GeoItem;
+import com.geckolib.animatable.SingletonGeoAnimatable;
+import com.geckolib.animatable.client.GeoRenderProvider;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.RawAnimation;
 import portalgun.PortalGunDataComponents;
 import portalgun.PortalGunMod;
 import portalgun.PortalGunRecord;
@@ -126,18 +127,15 @@ public class PortalGunItem extends Item implements GeoItem {
         
         public static ItemInfo fromTag(CompoundTag tag) {
             BlockList allowedBlocks =
-                BlockList.fromTag(tag.getList("allowedBlocks", Tag.TAG_STRING));
-            int maxEnergy = tag.contains("maxEnergy") ?
-                tag.getInt("maxEnergy") : PortalGunConfig.get().maxEnergy;
+                BlockList.fromTag(tag.getListOrEmpty("allowedBlocks"));
+            int maxEnergy = tag.getIntOr("maxEnergy", PortalGunConfig.get().maxEnergy);
             
-            int remainingEnergy = tag.contains("remainingEnergy") ?
-                tag.getInt("remainingEnergy") : PortalGunConfig.get().maxEnergy;
+            int remainingEnergy = tag.getIntOr("remainingEnergy", PortalGunConfig.get().maxEnergy);
             
             @Nullable Integer side1Color = PortalGunMod.parseColorTag(tag.get("side1Color"));
             @Nullable Integer side2Color = PortalGunMod.parseColorTag(tag.get("side2Color"));
             
-            boolean transformGravity = tag.contains("transformGravity") ?
-                tag.getBoolean("transformGravity") : false;
+            boolean transformGravity = tag.getBooleanOr("transformGravity", false);
             
             return new ItemInfo(
                 allowedBlocks, maxEnergy, remainingEnergy, side1Color, side2Color,
@@ -225,7 +223,7 @@ public class PortalGunItem extends Item implements GeoItem {
             private PortalGunItemRenderer renderer;
 
             @Override
-            public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
+            public PortalGunItemRenderer getGeoItemRenderer() {
                 if (this.renderer == null) {
                     this.renderer = new PortalGunItemRenderer();
                 }
@@ -238,7 +236,7 @@ public class PortalGunItem extends Item implements GeoItem {
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(
-            new AnimationController<>(this, "portalGunController", 1, state -> PlayState.CONTINUE)
+            new AnimationController<PortalGunItem>("portalGunController", 1, state -> PlayState.CONTINUE)
                 .triggerableAnim("shoot_anim", SHOOT_ANIM)
         );
     }
@@ -249,15 +247,14 @@ public class PortalGunItem extends Item implements GeoItem {
     }
     
     @Override
-    public boolean canAttackBlock(BlockState state, Level world, BlockPos pos, Player miner) {
+    public boolean canDestroyBlock(ItemStack itemStack, BlockState state, Level world, BlockPos pos, LivingEntity user) {
         return false;
     }
     
     @Override
-    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
-        ItemStack itemStack = player.getItemInHand(hand);
+    public InteractionResult use(Level world, Player player, InteractionHand hand) {
         if (world.isClientSide()) {
-            return InteractionResultHolder.fail(itemStack);
+            return InteractionResult.FAIL;
         }
         
         boolean success = interact(
@@ -269,41 +266,41 @@ public class PortalGunItem extends Item implements GeoItem {
             player.awardStat(Stats.ITEM_USED.get(this));
             
             // always fail, to cancel hand swing
-            return InteractionResultHolder.fail(itemStack);
+            return InteractionResult.FAIL;
         }
         else {
-            return InteractionResultHolder.fail(itemStack);
+            return InteractionResult.FAIL;
         }
     }
     
     @Override
     public void appendHoverText(
         @NotNull ItemStack stack, @NotNull Item.TooltipContext context,
-        @NotNull List<Component> tooltip, @NotNull TooltipFlag flag
+        @NotNull TooltipDisplay display, @NotNull Consumer<Component> tooltip, @NotNull TooltipFlag flag
     ) {
-        super.appendHoverText(stack, context, tooltip, flag);
+        super.appendHoverText(stack, context, display, tooltip, flag);
 
-        tooltip.add(Component.translatable("item.portalgun.portal_gun_desc").withStyle(ChatFormatting.GOLD));
+        tooltip.accept(Component.translatable("item.portalgun.portal_gun_desc").withStyle(ChatFormatting.GOLD));
 
         ItemInfo itemInfo = readInfo(stack);
         
         if (!itemInfo.allowedBlocks.list().isEmpty()) {
-            tooltip.add(Component.translatable("portal_gun.limit_allowed_blocks"));
+            tooltip.accept(Component.translatable("portal_gun.limit_allowed_blocks"));
             int displayLimit = 5;
             List<Block> allowedBlocks = itemInfo.allowedBlocks.asStream().limit(displayLimit + 1).toList();
             for (int i = 0; i < displayLimit; i++) {
                 if (i < allowedBlocks.size()) {
                     Block block = allowedBlocks.get(i);
-                    tooltip.add(block.getName().withStyle(ChatFormatting.LIGHT_PURPLE));
+                    tooltip.accept(block.getName().withStyle(ChatFormatting.LIGHT_PURPLE));
                 }
             }
             if (allowedBlocks.size() > displayLimit) {
-                tooltip.add(Component.literal("..."));
+                tooltip.accept(Component.literal("..."));
             }
         }
         
         if (itemInfo.limitsEnergy()) {
-            tooltip.add(Component.translatable(
+            tooltip.accept(Component.translatable(
                 "portal_gun.remaining_energy", itemInfo.remainingEnergy, itemInfo.maxEnergy
             ));
         }
@@ -319,11 +316,11 @@ public class PortalGunItem extends Item implements GeoItem {
             MutableComponent t1 = Component.literal("█").setStyle(s1);
             MutableComponent t2 = Component.literal("█").setStyle(s2);
             
-            tooltip.add(Component.empty().append(t1).append(" ").append(t2));
+            tooltip.accept(Component.empty().append(t1).append(" ").append(t2));
         }
         
         if (itemInfo.transformGravity) {
-            tooltip.add(
+            tooltip.accept(
                 Component.translatable("portal_gun.transform_gravity")
                     .withStyle(ChatFormatting.AQUA)
             );
@@ -359,7 +356,7 @@ public class PortalGunItem extends Item implements GeoItem {
         PortalGunRecord.PortalGunSide side
     ) {
         ItemStack itemStack = player.getItemInHand(hand);
-        player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
+        player.getCooldowns().addCooldown(itemStack, COOLDOWN_TICKS);
         
         PortalUtils.PortalAwareRaytraceResult raytraceResult = PortalUtils.portalAwareRayTrace(player, 100);
         
@@ -395,9 +392,8 @@ public class PortalGunItem extends Item implements GeoItem {
 
         if (itemInfo.limitsEnergy()) {
             if (itemInfo.remainingEnergy <= 0) {
-                player.displayClientMessage(
-                    Component.translatable("portal_gun.out_of_energy"),
-                    true
+                player.sendOverlayMessage(
+                    Component.translatable("portal_gun.out_of_energy")
                 );
                 return false;
             }
@@ -434,7 +430,7 @@ public class PortalGunItem extends Item implements GeoItem {
         PortalGunRecord.PortalInfo thisSideInfo = record.data.get(descriptor);
         PortalGunRecord.PortalInfo otherSideInfo = record.data.get(otherSideDescriptor);
         
-        Vec3 wallFacingVec = Vec3.atLowerCornerOf(wallFacing.getNormal());
+        Vec3 wallFacingVec = Vec3.atLowerCornerOf(wallFacing.getUnitVec3i());
         Vec3 newPortalOrigin = Helper
             .getBoxSurface(placement.areaBox.toRealNumberBox(), wallFacing.getOpposite())
             .getCenter()
@@ -452,14 +448,14 @@ public class PortalGunItem extends Item implements GeoItem {
         }
         
         if (portal == null) {
-            portal = CustomPortal.entityType.create(world);
+            portal = CustomPortal.entityType.create(world, EntitySpawnReason.TRIGGERED);
             assert portal != null;
         }
         
         portal.setOriginPos(newPortalOrigin);
         portal.setOrientationAndSize(
-            Vec3.atLowerCornerOf(rightDir.getNormal()),
-            Vec3.atLowerCornerOf(upDir.getNormal()),
+            Vec3.atLowerCornerOf(rightDir.getUnitVec3i()),
+            Vec3.atLowerCornerOf(upDir.getUnitVec3i()),
             kind.getWidth() * SIZE_MULTIPLIER,
             kind.getHeight() * SIZE_MULTIPLIER
         );
@@ -521,12 +517,11 @@ public class PortalGunItem extends Item implements GeoItem {
     
     private static boolean checkAction(ServerPlayer player, ServerLevel world) {
         if (world.dimension() == Level.END) {
-            EndDragonFight endDragonFight = world.getDragonFight();
+            EnderDragonFight endDragonFight = world.getDragonFight();
             if (endDragonFight != null) {
                 if (!endDragonFight.hasPreviouslyKilledDragon()) {
-                    player.displayClientMessage(
-                        Component.literal("Using portal gun in end before killing any ender dragon is not allowed"),
-                        true
+                    player.sendOverlayMessage(
+                        Component.literal("Using portal gun in end before killing any ender dragon is not allowed")
                     );
                     return false;
                 }
@@ -583,7 +578,7 @@ public class PortalGunItem extends Item implements GeoItem {
                 return 1;
             }
             // horizontal dot product
-            return dir.getNormal().getX() * localViewVector.x + dir.getNormal().getZ() * localViewVector.z;
+            return dir.getUnitVec3i().getX() * localViewVector.x + dir.getUnitVec3i().getZ() * localViewVector.z;
         }).reversed());
         
         BlockPos portalAreaSize = new BlockPos(kind.getWidth(), kind.getHeight(), 1);
@@ -595,7 +590,7 @@ public class PortalGunItem extends Item implements GeoItem {
             AARotation rot = AARotation.getAARotationFromYZ(upDir, wallFacing);
             BlockPos transformedSize = rot.transform(portalAreaSize);
             IntBox portalArea = IntBox.getBoxByPosAndSignedSize(interactingAirPos, transformedSize);
-            IntBox wallArea = portalArea.getMoved(wallFacing.getOpposite().getNormal());
+            IntBox wallArea = portalArea.getMoved(wallFacing.getOpposite().getUnitVec3i());
             
             if (PortalGunMod.isAreaClear(world, portalArea) &&
                 wallArea.fastStream().allMatch(p -> wallPredicate.test(world, p)) &&

@@ -12,5 +12,6 @@
   "text.autoconfig.portalgun.option.enabled.portalFunneling": "Portal Funneling",
   "text.autoconfig.portalgun.title": "Portal Gun Fabric Options",
   "text.autoconfig.portalgun.option.maxEnergy": "Макс. энергия",
-  "text.autoconfig.portalgun.option.maxEnergy.@Tooltip": "Энергия по умолчанию для новых портальных пушек. 0 = бесконечная энергия."
+  "text.autoconfig.portalgun.option.maxEnergy.@Tooltip": "Энергия по умолчанию для новых портальных пушек. 0 = бесконечная энергия.",
+  "key.category.portalgun.portalgun": "Portal Gun (Портальная пушка)"
 }

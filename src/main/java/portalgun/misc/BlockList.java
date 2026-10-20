@@ -7,7 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -37,7 +37,7 @@ public record BlockList(
     }
     
     public static BlockList fromTag(ListTag tag) {
-        return new BlockList(Helper.listTagDeserialize(tag, StringTag::getAsString, StringTag.class));
+        return new BlockList(Helper.listTagDeserialize(tag, StringTag::value, StringTag.class));
     }
     
     public BiPredicate<Level, BlockPos> getWallPredicate() {
@@ -64,9 +64,9 @@ public record BlockList(
         if (str.startsWith("#")) {
             TagKey<Block> tagKey = TagKey.create(
                 Registries.BLOCK,
-                ResourceLocation.parse(str.substring(1))
+                Identifier.parse(str.substring(1))
             );
-            Optional<HolderSet.Named<Block>> named = BuiltInRegistries.BLOCK.getTag(tagKey);
+            Optional<HolderSet.Named<Block>> named = BuiltInRegistries.BLOCK.get(tagKey);
             if (named.isEmpty()) {
                 LIMITED_LOGGER.invoke(() -> {
                     LOGGER.error("Unknown block tag: {}", str);
@@ -79,7 +79,7 @@ public record BlockList(
             }
         }
         else {
-            Optional<Block> optional = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.parse(str));
+            Optional<Block> optional = BuiltInRegistries.BLOCK.getOptional(Identifier.parse(str));
             if (optional.isPresent()) {
                 return Collections.singletonList(optional.get());
             }

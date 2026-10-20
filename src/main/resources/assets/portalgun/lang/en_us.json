@@ -16,5 +16,6 @@
   "portal_gun.out_of_energy": "Out of energy. Recharge it using nether star by crafting.",
   "portal_gun.remaining_energy": "Energy: %s / %s",
   "portalgun.item_group": "Portal Gun",
-  "portal_gun.transform_gravity": "Gravity Transform Enabled"
+  "portal_gun.transform_gravity": "Gravity Transform Enabled",
+  "key.category.portalgun.portalgun": "Portal Gun"
 }

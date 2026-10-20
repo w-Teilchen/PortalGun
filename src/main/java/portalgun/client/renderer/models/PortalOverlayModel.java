@@ -1,26 +1,17 @@
 package portalgun.client.renderer.models;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
-import portalgun.entities.CustomPortal;
 
-public class PortalOverlayModel extends EntityModel<CustomPortal> {
-    private final ModelPart base;
-    private final ModelPart cube_r1;
-    
-    public PortalOverlayModel(ModelPart root) {
-        this.base = root.getChild("base");
-        this.cube_r1 = base.getChild("cube_r1");
-    }
-    
+/**
+ * The portal overlay mesh. Since 1.21.2 entity models are drawn from render states,
+ * so the renderer submits the baked "base" part directly instead of going through an EntityModel.
+ */
+public class PortalOverlayModel {
     public static MeshDefinition getModelData() {
         MeshDefinition modelData = new MeshDefinition();
         PartDefinition modelPartData = modelData.getRoot();
@@ -43,18 +34,7 @@ public class PortalOverlayModel extends EntityModel<CustomPortal> {
         return modelData;
     }
     
-    
     public static LayerDefinition getTexturedModelData() {
         return LayerDefinition.create(getModelData(), 32, 64);
-    }
-    
-    @Override
-    public void setupAnim(CustomPortal entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
-        //previously the render function, render code was moved to a method below
-    }
-
-    @Override
-    public void renderToBuffer(PoseStack matrixStack, VertexConsumer buffer, int packedLight, int packedOverlay, int color) {
-        base.render(matrixStack, buffer, packedLight, packedOverlay, color);
     }
 }

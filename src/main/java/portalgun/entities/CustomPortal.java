@@ -1,13 +1,10 @@
 package portalgun.entities;
 
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,9 +21,9 @@ import java.util.function.BiPredicate;
 public class CustomPortal extends Portal {
     private static final Logger LOGGER = LogManager.getLogger();
     
-    public static EntityType<CustomPortal> entityType = FabricEntityTypeBuilder.create(MobCategory.MISC, CustomPortal::new)
-        .dimensions(EntityDimensions.scalable(0F, 0F))
-        .build();
+    // since 1.21.2 the registry key is needed when building the type
+    public static EntityType<CustomPortal> entityType =
+        Portal.createPortalEntityType(PortalGunMod.id("custom_portal"), CustomPortal::new);
     
     public PortalGunRecord.PortalDescriptor descriptor;
     
@@ -49,12 +46,12 @@ public class CustomPortal extends Portal {
     @Override
     protected void readAdditionalSaveData(CompoundTag compoundTag) {
         super.readAdditionalSaveData(compoundTag);
-        descriptor = PortalGunRecord.PortalDescriptor.fromTag(compoundTag.getCompound("descriptor"));
-        wallBox = IntBox.fromTag(compoundTag.getCompound("wallBox"));
-        airBox = IntBox.fromTag(compoundTag.getCompound("airBox"));
-        setAllowedBlocks(BlockList.fromTag(compoundTag.getList("allowedBlocks", Tag.TAG_STRING)));
-        thisSideUpdateCounter = compoundTag.getInt("thisSideUpdateCounter");
-        otherSideUpdateCounter = compoundTag.getInt("otherSideUpdateCounter");
+        descriptor = PortalGunRecord.PortalDescriptor.fromTag(compoundTag.getCompoundOrEmpty("descriptor"));
+        wallBox = IntBox.fromTag(compoundTag.getCompoundOrEmpty("wallBox"));
+        airBox = IntBox.fromTag(compoundTag.getCompoundOrEmpty("airBox"));
+        setAllowedBlocks(BlockList.fromTag(compoundTag.getListOrEmpty("allowedBlocks")));
+        thisSideUpdateCounter = compoundTag.getIntOr("thisSideUpdateCounter", 0);
+        otherSideUpdateCounter = compoundTag.getIntOr("otherSideUpdateCounter", 0);
         customColor = PortalGunMod.parseColorTag(compoundTag.get("customColor"));
     }
     
@@ -76,7 +73,7 @@ public class CustomPortal extends Portal {
     public void tick() {
         super.tick();
         
-        if (!level().isClientSide) {
+        if (!level().isClientSide()) {
             updateState();
         }
     }
@@ -97,7 +94,7 @@ public class CustomPortal extends Portal {
     void updateState() {
         if (descriptor == null || wallBox == null) {
             LOGGER.error("Portal info abnormal {}", this);
-            kill();
+            kill((ServerLevel) level());
             return;
         }
         
@@ -107,17 +104,17 @@ public class CustomPortal extends Portal {
         if (thisSideInfo == null) {
             // info is missing
             playClosingSound();
-            kill();
+            kill((ServerLevel) level());
             return;
         }
         if (thisSideUpdateCounter != thisSideInfo.updateCounter() || !thisSideInfo.portalId().equals(getUUID())) {
             // replaced by new portal
-            kill();
+            kill((ServerLevel) level());
             return;
         }
         // check block status
         if (!checkBlockStatus()) {
-            kill();
+            kill((ServerLevel) level());
             record.data.remove(descriptor);
             record.setDirty();
             playClosingSound();
@@ -127,7 +124,7 @@ public class CustomPortal extends Portal {
             // other side is missing, make this side inactive
             if (otherSideUpdateCounter != -1) {
                 otherSideUpdateCounter = -1;
-                teleportable = false;
+                setTeleportable(false);
                 setIsVisible(false);
                 setDestination(getOriginPos().add(0, 10, 0));
                 reloadAndSyncToClient();
@@ -146,7 +143,7 @@ public class CustomPortal extends Portal {
                 );
             }
             otherSideUpdateCounter = otherSideInfo.updateCounter();
-            teleportable = true;
+            setTeleportable(true);
             setIsVisible(true);
             setDestination(otherSideInfo.portalPos());
             setDestinationDimension(otherSideInfo.portalDim());

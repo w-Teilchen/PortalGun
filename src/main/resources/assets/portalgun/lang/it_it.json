@@ -16,5 +16,6 @@
   "portal_gun.out_of_energy": "Energia esaurita. Ricaricala craftando con una stella del Nether.",
   "portal_gun.remaining_energy": "Energia: %s / %s",
   "portalgun.item_group": "Portal Gun",
-  "portal_gun.transform_gravity": "Trasformazione gravità attiva"
+  "portal_gun.transform_gravity": "Trasformazione gravità attiva",
+  "key.category.portalgun.portalgun": "Portal Gun"
 }

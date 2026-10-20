@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "portalgun:item/portalgun_claw",
+    "model": {
+      "type": "geckolib:geckolib"
+    }
+  }
+}

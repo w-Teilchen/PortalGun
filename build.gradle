@@ -1,198 +1,92 @@
 plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT'
-    id 'maven-publish'
-
-    id "me.modmuss50.mod-publish-plugin" version "0.4.5"
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
+
+version = project.mod_version
+group = project.maven_group
+base { archivesName = project.archives_base_name }
 
 repositories {
     mavenCentral()
-    mavenLocal()
-    maven {
-        name 'Fabric'
-        url 'https://maven.fabricmc.net/'
-    }
-    maven {
-        name = 'JitPack'
-        url = 'https://jitpack.io'
-    }
-    maven { url 'https://hephaestus.dev/release' }
-    maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
-    maven { url 'https://maven.shedaniel.me' }
-    maven { url 'https://maven.fabricmc.net/io/github/prospector/modmenu' }
-    maven { url 'https://maven.terraformersmc.com/releases/' }
-
-    // for parchment
-    maven {
-        url = "https://maven.parchmentmc.org"
-    }
-
-    // for sodium
-    maven {
-        name = "Modrinth"
-        url = "https://api.modrinth.com/maven"
-        content {
-            includeGroup "maven.modrinth"
+    maven { url "https://maven.shedaniel.me/" }
+    maven { url "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/" }
+    // Immersively Vibed Portals has no Maven repository; take the jar from its GitHub release
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = "ImmersivelyVibedPortals"
+                url = "https://github.com/nyannoying1337/ImmersivelyVibedPortals/releases/download/"
+                patternLayout { artifact "v[revision]/[module]-[revision]-mc26.3-fabric.[ext]" }
+                metadataSources { artifact() }
+            }
         }
+        filter { includeGroup "nyannoying1337" }
     }
-
-    // for cardinal components that gravity changer uses
-    maven {
-        name = 'Ladysnake'
-        url = 'https://maven.ladysnake.org/releases'
+    exclusiveContent {
+        forRepository { maven { name = "Modrinth"; url = "https://api.modrinth.com/maven" } }
+        filter { includeGroup "maven.modrinth" }
     }
-
 }
 
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    withSourcesJar()
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "portalgun_gametest"
+        enableGameTests = false
+        enableClientGameTests = true
+        clearRunDirectory = !providers.gradleProperty("withPackMods").isPresent()
+    }
 }
-
-base {
-    archivesName = project.archives_base_name
-}
-version = project.mod_version
-group = project.maven_group
 
 loom {
-//    accessWidenerPath = file("src/main/resources/portalgun.accesswidener")
+    runs {
+        clientGameTest {
+            programArgs "--width", "1280", "--height", "720"
+            property "portalgun.test.out", file("build/portal-test").absolutePath
+            // -Pscene=dh: Distant Horizons scene (LODs must stay behind walls while portals exist)
+            property "portalgun.test.scene", providers.gradleProperty("scene").getOrElse("basic")
+        }
+    }
 }
+
+// -PwithPackMods: also load the user's mod set (Sodium, Iris, Distant Horizons, Physics Mod, ...) from packmods/
+def packMods = providers.gradleProperty("withPackMods").isPresent()
 
 dependencies {
-    //to change the versions see the gradle.properties file
+    if (packMods) {
+        localRuntime fileTree(dir: "packmods", include: "*.jar")
+    }
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-//    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    mappings loom.layered() {
-        officialMojangMappings() {
-            setNameSyntheticMembers(false)
-        }
-        parchment("org.parchmentmc.data:parchment-1.21:2024.07.28")
-    }
+    // Immersive Portals' 26.3 port (Immersively Vibed Portals, which bundles DimLib) and GeckoLib 5
+    implementation "nyannoying1337:immersively-vibed-portals:${project.ivp_version}"
+    implementation "com.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
 
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-    // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-    modImplementation "maven.modrinth:immersiveportals:${immptl_version}"
-    modImplementation("com.github.iPortalTeam:DimLib:${dimlib_version}") {
+    implementation("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}") {
         exclude(group: "net.fabricmc.fabric-api")
     }
-
-    // maven local
-//    modImplementation "qouteall:imm_ptl_20:3.1.2.1"
-//    modImplementation "qouteall:imm_ptl_core:3.1.2.1"
-//    modImplementation "qouteall:q_misc_util:3.1.2.1"
-
+    compileOnly "maven.modrinth:modmenu:${modmenu_version}"
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
-
-    modImplementation ("software.bernie.geckolib:${geckolib_path}") {
-
-    }
-
-    modImplementation("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}") {
-        exclude(group: "net.fabricmc.fabric-api")
-    }
-    modImplementation "maven.modrinth:modmenu:${modmenu_version}"
-
-//    modLocalRuntime("com.github.qouteall:GravityChanger:v1.2.0-mc1.20.2") {
-//        exclude(group: "net.fabricmc.fabric-api")
-//        transitive=false
-//    }
-
-//    modImplementation "maven.modrinth:sodium:mc1.20.1-0.5.2"
-
-//    modImplementation 'maven.modrinth:iris:1.6.1+1.19.4'
-//    implementation "org.anarres:jcpp:1.4.14" // for iris
-//    implementation 'io.github.douira:glsl-transformer:2.0.0-pre12' // for iris
-//    implementation 'org.antlr:antlr4-runtime:4.11.1' // for iris
-
-//    api("com.github.LlamaLad7:MixinExtras:${mixin_extras_version}")
-//    annotationProcessor("com.github.LlamaLad7:MixinExtras:${mixin_extras_version}")
 }
+
 processResources {
     inputs.property "version", project.version
-
-    filesMatching("fabric.mod.json") {
-        expand "version": project.version
-    }
+    filesMatching("fabric.mod.json") { expand "version": project.version }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = 25
+    it.options.compilerArgs += ["-Xmaxerrs", "10000"]
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {
-    from("LICENSE") {
-        rename { "${it}_${project.archives_base_name}"}
-    }
-}
-
-afterEvaluate {
-    remapJar {
-        archiveFileName = "${project.archives_base_name}-${project.mod_version}-mc${project.minecraft_version}-fabric.jar"
-    }
-}
-
-// configure the maven publication
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-        }
-    }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-        // Notice: This block does NOT have the same function as the block in the top level.
-        // The repositories here will be used for publishing your artifact, not for
-        // retrieving dependencies.
-    }
-}
-
-publishMods {
-    file = remapJar.archiveFile
-    changelog = file("changelog.md").text
-    type = ALPHA
-    modLoaders.add("fabric")
-
-    displayName = "v${project.mod_version}-mc${project.minecraft_version}"
-    version = "v${project.mod_version}-mc${project.minecraft_version}"
-
-    curseforge {
-        projectId = "839380"
-        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
-        minecraftVersions.add(minecraft_version)
-
-        requires {
-            slug = "immersive-portals-mod"
-        }
-    }
-    modrinth {
-        projectId = "n1B6JCKV"
-        accessToken = providers.environmentVariable("MODRINTH_TOKEN")
-        minecraftVersions.add(minecraft_version)
-
-        requires {
-            slug = "fabric-api"
-        }
-
-        requires {
-            slug = "immersiveportals"
-        }
-
-        requires {
-            slug = "geckolib"
-        }
-    }
-    github {
-        repository = "iPortalTeam/PortalGun"
-        accessToken = providers.environmentVariable("GITHUB_TOKEN")
-        commitish = minecraft_version // the branch name is the same as minecraft version
-    }
+    archiveFileName = "${project.archives_base_name}-${project.mod_version}-mc${project.minecraft_version}-fabric.jar"
+    from("LICENSE") { rename { "${it}_${project.archives_base_name}" } }
 }
